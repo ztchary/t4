@@ -14,9 +14,15 @@ struct termios original_termios;
 const char *too_small = "terminal is too small (%d x %d)";
 
 const char *draws[] = {
-	"\e[32m\e[2C\e[1B          \e[1B\e[10D          \e[1B\e[10D          \e[1B\e[10D          \e[1B\e[10D          ",
-	"\e[31m\e[2C\e[1B▀▄      ▄▀\e[1B\e[10D  ▀▄  ▄▀  \e[1B\e[10D    ██    \e[1B\e[10D  ▄▀  ▀▄  \e[1B\e[10D▄▀      ▀▄",
-	"\e[36m\e[2C\e[1B ▄▄▀▀▀▀▄▄ \e[1B\e[10D▄▀      ▀▄\e[1B\e[10D█        █\e[1B\e[10D▀▄      ▄▀\e[1B\e[10D ▀▀▄▄▄▄▀▀ ",
+	"\e[2C\e[1B          \e[1B\e[10D          \e[1B\e[10D          \e[1B\e[10D          \e[1B\e[10D          ",
+	"\e[2C\e[1B▀▄      ▄▀\e[1B\e[10D  ▀▄  ▄▀  \e[1B\e[10D    ██    \e[1B\e[10D  ▄▀  ▀▄  \e[1B\e[10D▄▀      ▀▄",
+	"\e[2C\e[1B ▄▄▀▀▀▀▄▄ \e[1B\e[10D▄▀      ▀▄\e[1B\e[10D█        █\e[1B\e[10D▀▄      ▄▀\e[1B\e[10D ▀▀▄▄▄▄▀▀ ",
+};
+
+const char *colors[] = {
+	"\e[32m",
+	"\e[31m",
+	"\e[36m",
 };
 
 const int patterns[] = {
@@ -84,7 +90,7 @@ void get_wsize(int *row, int *col) {
 }
 
 void center_text(const char *text, int rows, int cols) {
-	printf("\e[%d;%ldH%s", rows/2 - 13, cols/2 - strlen(text)/2, text);
+	printf("\e[%d;%ldH%s", rows/2 - 14, cols/2 - strlen(text)/2, text);
 }
 
 void draw() {
@@ -111,7 +117,9 @@ void draw() {
 
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
-			printf("\e[%dm\e[%d;%dH%s", (i == y && j == x) * 47, yoff + (i * 8), xoff + (j * 16), draws[board[j+i*3]]);
+			printf("\e[%dm", (i == y && j == x) * 47);
+			printf("\e[%d;%dH", yoff + (i * 8), xoff + (j * 16));
+			printf("%s%s", colors[board[j+i*3]], draws[board[j+i*3]]);
 		}
 	}
 
@@ -120,6 +128,39 @@ void draw() {
 	if (win == 1) center_text("X wins!", rows, cols);
 	if (win == 2) center_text("O wins!", rows, cols);
 	if (win == 3) center_text("Draw!", rows, cols);
+
+	for (int i = 0; i < 3; i++) {
+		if (board[i] != 0 && board[i] == board[i+3] && board[i] == board[i+6]) {
+			printf("\e[%d;%dH", yoff - 1, xoff + i * 16 + 5);
+			printf("%s", colors[board[i]]);
+			for (int j = 0; j < 25; j++) printf(" ██ \e[1B\e[4D");
+		}
+		if (board[i*3] != 0 && board[i*3] == board[i*3+1] && board[i*3] == board[i*3+2]) {
+			printf("\e[%d;%dH", yoff + i * 8 + 2, xoff - 2);
+			printf("%s", colors[board[i*3]]);
+			printf("%*s\e[1B\e[50D", 50, "");
+			for (int j = 0; j < 50; j++) printf("█");
+			printf("\e[1B\e[50D%*s", 50, "");
+		}
+	}
+
+	if (board[0] != 0 && board[0] == board[4] && board[0] == board[8]) {
+		printf("\e[%d;%dH", yoff - 1, xoff - 2);
+		printf("%s", colors[board[0]]);
+		printf("██▄  ");
+		for (int i = 0; i < 23; i++) printf("\e[1B\e[6D  ▀██▄  ");
+		printf("\e[1B\e[4D▀██");
+	}
+
+	if (board[2] != 0 && board[2] == board[4] && board[2] == board[6]) {
+		printf("\e[%d;%dH", yoff + 23, xoff - 2);
+		printf("%s", colors[board[2]]);
+		printf("██▀  ");
+		for (int i = 0; i < 23; i++) printf("\e[1A\e[6D  ▄██▀  ");
+		printf("\e[1A\e[4D▄██");
+	}
+
+	printf("\e[m");
 
 	fflush(stdout);
 }
